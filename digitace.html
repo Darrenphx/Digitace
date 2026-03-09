@@ -1,0 +1,1795 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digitace</title>
+  <meta name="description" content="A daily number guessing game. Guess the 4-digit number in 8 tries. A new puzzle every day!" />
+  <meta property="og:title" content="Digitace" />
+  <meta property="og:description" content="A daily number guessing game. Guess the 4-digit number in 8 tries. A new puzzle every day!" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Digitace" />
+  <meta name="twitter:description" content="A daily number guessing game. Guess the 4-digit number in 8 tries!" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕵️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── THEME VARIABLES ── */
+    [data-theme="light"] {
+      --bg:        #f0f4f8;
+      --surface:   #ffffff;
+      --surface2:  #e8eef4;
+      --border:    #d0dbe6;
+      --fg:        #1e2a35;
+      --dim:       #7a92a8;
+      --muted:     #a8bcc8;
+      --shadow:    rgba(0,0,0,0.07);
+    }
+    [data-theme="dark"] {
+      --bg:        #0f1318;
+      --surface:   #1a2028;
+      --surface2:  #222c36;
+      --border:    #2e3d4d;
+      --fg:        #e2eaf0;
+      --dim:       #6a8a9e;
+      --muted:     #3e5568;
+      --shadow:    rgba(0,0,0,0.3);
+    }
+
+    :root {
+      --green:     #3a9e6e;
+      --green-bg-l:#eaf6f0;
+      --green-bg-d:#0d2b1e;
+      --red:       #c0392b;
+      --accent:    #4a7fa5;
+      --accent-bg-l:#eaf1f7;
+      --accent-bg-d:#0d2030;
+      --gold:      #c8860a;
+
+      --tile: 58px;
+      --gap:  6px;
+      --radius: 10px;
+    }
+
+    [data-theme="light"] {
+      --green-bg:  var(--green-bg-l);
+      --accent-bg: var(--accent-bg-l);
+    }
+    [data-theme="dark"] {
+      --green-bg:  var(--green-bg-d);
+      --accent-bg: var(--accent-bg-d);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left, .header-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-width: 80px;
+    }
+    .header-right { justify-content: flex-end; }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title {
+      font-size: clamp(16px, 2.5vw, 20px);
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--fg);
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--fg);
+      transition: color 0.15s, opacity 0.15s;
+      padding: 0;
+      border-radius: 4px;
+    }
+    .icon-btn:hover { opacity: 0.7; }
+    .icon-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── MODE BUTTONS (legacy, now in modeRow) ── */
+
+    .modeBtn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 22px;
+      background: var(--surface);
+      color: var(--dim);
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .modeBtn:hover  { border-color: var(--accent); color: var(--accent); }
+    .modeBtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── DAILY NOTICE ── */
+    .dailyNotice {
+      text-align: center;
+      font-size: 12px;
+      color: var(--dim);
+      padding-top: 10px;
+      min-height: 18px;
+      font-weight: 500;
+    }
+
+    /* ── COUNTDOWN ── */
+    .countdown {
+      text-align: center;
+      font-size: 12px;
+      color: var(--dim);
+      font-weight: 500;
+      min-height: 16px;
+    }
+    .countdown b { color: var(--accent); font-family: 'DM Mono', monospace; }
+
+    /* ── MAIN GAME ── */
+    main {
+      width: 100%;
+    }
+
+    .game {
+      max-width: 400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 14px 14px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+
+    /* ── BOARD ── */
+    .board {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .rowWrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .row {
+      display: flex;
+      gap: var(--gap);
+      justify-content: center;
+    }
+
+    .tile {
+      width: var(--tile);
+      height: var(--tile);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      font-family: 'DM Mono', monospace;
+      font-size: 26px;
+      font-weight: 500;
+      color: var(--fg);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .row.future .tile {
+      opacity: 0.35;
+      border-style: dashed;
+    }
+
+    .tile.filled {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+      animation: pop 0.12s ease;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .row.active .tile:not(.filled) { border-color: var(--accent); opacity: 0.7; }
+
+    .row.submitted .tile {
+      background: var(--surface2);
+      border-color: var(--border);
+      box-shadow: none;
+      color: var(--fg);
+    }
+
+    .row.won .tile {
+      background: var(--green-bg);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    /* shake for invalid guess */
+    .row.shake {
+      animation: shake 0.4s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-6px); }
+      40%     { transform: translateX(6px); }
+      60%     { transform: translateX(-4px); }
+      80%     { transform: translateX(4px); }
+    }
+
+    /* bounce on win */
+    .tile.bounce {
+      animation: bounce 0.5s ease forwards;
+    }
+    @keyframes bounce {
+      0%   { transform: translateY(0); }
+      30%  { transform: translateY(-14px); }
+      55%  { transform: translateY(0); }
+      75%  { transform: translateY(-6px); }
+      90%  { transform: translateY(0); }
+      100% { transform: translateY(0); }
+    }
+
+    /* submit pulse on row */
+    .row.submitted-flash {
+      animation: rowPulse 0.3s ease;
+    }
+    @keyframes rowPulse {
+      0%   { opacity: 1; }
+      40%  { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    /* ── SCORE ── */
+    .score {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--dim);
+      display: flex;
+      gap: 16px;
+      letter-spacing: 0.2px;
+    }
+    .score b { color: var(--fg); font-weight: 700; }
+    .hiddenScore { visibility: hidden; }
+
+    /* ── TOAST ── */
+    .toast-wrap {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--fg);
+      color: var(--surface);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 999px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      border-radius: 999px;
+    }
+
+    /* ── CONTROLS ── */
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--surface);
+      color: var(--fg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover  { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .btn:active { transform: translateY(1px); }
+
+    /* ── PRACTICE END BAR ── */
+    .practiceEndBar {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      animation: modalIn 0.2s ease;
+    }
+    .practiceEndLeft {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .practiceEndAnswer {
+      font-family: 'DM Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .practiceEndActions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-small {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--fg);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-small:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-small.btn-accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-small.btn-accent:hover { opacity: 0.9; }
+
+    /* ── PRACTICE SUB ROW ── */
+    .practiceSubRow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 20px 0;
+    }
+    .subModeBtn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 16px;
+      background: var(--surface);
+      color: var(--dim);
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .subModeBtn:hover { border-color: var(--accent); color: var(--accent); }
+    .subModeBtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .subModeBadge {
+      font-size: 10px;
+      font-weight: 700;
+      opacity: 0.75;
+      letter-spacing: 0.3px;
+    }
+    .subModeBtn.active .subModeBadge { opacity: 0.85; }
+
+    /* ── STREAK ── */
+    .streak {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--dim);
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 14px;
+      text-align: center;
+    }
+    .streak b { color: var(--gold); }
+    
+    /* ── PAGE WRAPPER ── */
+    .pageWrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    /* ── MODE + STREAK ROW ── */
+    .modeRow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 20px 0;
+      flex-wrap: wrap;
+    }
+
+    /* ── KEYPAD ── */
+    .keypad {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .keyrow { display: flex; gap: 7px; }
+
+    .key {
+      font-family: 'DM Mono', monospace;
+      font-size: 16px;
+      font-weight: 500;
+      width: 46px;
+      height: 48px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--fg);
+      cursor: pointer;
+      transition: all 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .key:hover  { background: var(--surface2); border-color: var(--accent); }
+    .key:active { transform: translateY(2px); box-shadow: none; }
+    .key.flash {
+      background: var(--accent-bg);
+      border-color: var(--accent);
+      transform: scale(0.93);
+    }
+
+    .key.enter {
+      width: 78px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--green-bg);
+      border-color: var(--green);
+      color: var(--green);
+      letter-spacing: 0.5px;
+    }
+    .key.enter:hover { filter: brightness(1.05); }
+
+    .key.back {
+      width: 78px;
+      font-size: 18px;
+      background: var(--surface2);
+    }
+
+    /* ── MODAL BACKDROP ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      position: relative;
+      animation: modalIn 0.2s ease;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.94); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px; right: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--dim);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--fg); }
+    .modal-close svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+
+    .modal h2 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--fg);
+    }
+
+    /* ── HOW TO PLAY MODAL ── */
+    .how-section { margin-bottom: 14px; }
+    .how-section p {
+      font-size: 13px;
+      color: var(--dim);
+      line-height: 1.7;
+      margin-bottom: 8px;
+    }
+    .how-section p b { color: var(--fg); }
+
+    .example-row {
+      display: flex;
+      gap: 6px;
+      margin: 10px 0;
+    }
+    .ex-tile {
+      width: 42px; height: 42px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--fg);
+    }
+    .ex-tile.submitted {
+      background: var(--surface2);
+      border-color: var(--border);
+    }
+
+    .how-label {
+      font-size: 12px;
+      color: var(--dim);
+      margin-top: 4px;
+    }
+    .how-label b { color: var(--fg); }
+
+    /* ── RESULT MODAL ── */
+    .result-header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .result-emoji { font-size: 40px; margin-bottom: 8px; }
+    .result-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .result-sub {
+      font-size: 13px;
+      color: var(--dim);
+    }
+
+    /* stat grid */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .stat-box {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+    .stat-box .stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--fg);
+      font-family: 'DM Mono', monospace;
+    }
+    .stat-box .stat-lbl {
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    /* guess distribution */
+    .dist-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .dist-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+    .dist-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--dim);
+      width: 12px;
+      text-align: right;
+    }
+    .dist-bar-wrap { flex: 1; }
+    .dist-bar {
+      height: 20px;
+      border-radius: 4px;
+      background: var(--surface2);
+      min-width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--dim);
+      transition: width 0.4s ease;
+    }
+    .dist-bar.highlight { background: var(--accent); color: #fff; }
+
+    /* countdown in result */
+    .result-countdown {
+      text-align: center;
+      font-size: 13px;
+      color: var(--dim);
+      margin: 14px 0 4px;
+      font-weight: 500;
+    }
+    .result-countdown b { color: var(--accent); font-family: 'DM Mono', monospace; font-size: 16px; }
+
+    /* share button */
+    .share-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 10px;
+    }
+    .share-btn:hover { opacity: 0.9; }
+
+    /* ── STATS MODAL ── */
+    .stats-modal-inner { /* same as result, reuses classes */ }
+
+    /* ── COMPLETED BANNER ── */
+    .completedBanner {
+      display: none;
+      background: var(--green-bg);
+      border: 1px solid var(--green);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      text-align: center;
+      cursor: pointer;
+      width: 100%;
+    }
+    .completedBanner.show { display: block; }
+    .completedBanner .banner-title { font-size: 15px; margin-bottom: 4px; }
+    .completedBanner .banner-sub { font-size: 12px; opacity: 0.8; font-weight: 500; }
+
+    /* ── SETTINGS MODAL ── */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+    }
+    .setting-info { flex: 1; }
+    .setting-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--fg);
+      margin-bottom: 2px;
+    }
+    .setting-desc { font-size: 12px; color: var(--dim); }
+    .setting-divider { height: 1px; background: var(--border); border-radius: 999px; }
+    .setting-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 26px;
+      background: var(--border);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .toggle-switch[aria-checked="true"] { background: var(--accent); }
+    .toggle-knob {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+    .toggle-switch[aria-checked="true"] .toggle-knob { transform: translateX(18px); }
+
+    @media (max-width: 480px) {
+      :root { --tile: 52px; --gap: 5px; }
+      .practiceSubRow { gap: 6px; padding: 6px 12px 0; }
+      .subModeBtn { padding: 5px 12px; font-size: 11px; }
+      .key { width: 40px; height: 44px; font-size: 15px; }
+      .key.enter, .key.back { width: 70px; font-size: 11px; }
+      .keyrow { gap: 5px; justify-content: center; width: 100%; }
+      .keypad { width: 100%; }
+      .game { padding: 8px 8px 20px; gap: 8px; width: 100%; overflow-x: hidden; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .modeRow { gap: 6px; padding: 10px 12px 0; }
+      .modeBtn { padding: 7px 14px; font-size: 12px; }
+      .modal { padding: 22px 18px; }
+      .title { font-size: 15px; letter-spacing: 2px; }
+    }
+
+    @media (max-width: 390px) {
+      :root { --tile: 46px; --gap: 4px; }
+      .key { width: 36px; height: 40px; font-size: 14px; }
+      .key.enter, .key.back { width: 64px; font-size: 10px; }
+      .keyrow { gap: 4px; }
+      .tile { font-size: 22px; }
+    }
+
+    @media (max-width: 360px) {
+      :root { --tile: 42px; --gap: 4px; }
+      .key { width: 33px; height: 38px; font-size: 13px; }
+      .key.enter, .key.back { width: 58px; }
+      .keyrow { gap: 3px; }
+      .tile { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-left">
+      <button class="icon-btn" id="helpBtn" title="How to play">
+        <!-- help / question mark icon -->
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </div>
+    <div class="header-center">
+      <div class="title">DIGITACE</div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="statsBtn" title="Statistics">
+        <!-- bar chart icon -->
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Settings">
+        <!-- settings gear icon -->
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="pageWrap">
+  <!-- ── MODE + STREAK ROW ── -->
+  <div class="modeRow">
+    <button class="modeBtn active" id="dailyBtn">Daily</button>
+    <button class="modeBtn" id="practiceBtn">Practice</button>
+    <div id="streakEl" class="streak">Streak: <b>0</b></div>
+  </div>
+  <div class="practiceSubRow" id="practiceSubRow" style="display:none">
+    <button class="subModeBtn active" id="normalBtn">Normal <span class="subModeBadge">4 digits</span></button>
+    <button class="subModeBtn" id="hardBtn">Hard <span class="subModeBadge">5 digits</span></button>
+  </div>
+
+  <div class="dailyNotice" id="dailyNotice"></div>
+  <div class="countdown" id="countdown"></div>
+
+  <!-- ── FLOATING TOAST ── -->
+  <div class="toast-wrap">
+    <div id="toast" class="toast" aria-live="polite"></div>
+  </div>
+
+  <!-- ── MAIN GAME ── -->
+  <main class="game">
+    <div id="completedBanner" class="completedBanner">
+      <div class="banner-title">✓ Today's puzzle is complete!</div>
+      <div class="banner-sub" id="bannerSub">Come back tomorrow for the next puzzle · Tap to see results</div>
+    </div>
+
+    <div id="board" class="board" aria-label="game board"></div>
+
+    <!-- ── PRACTICE END BAR ── -->
+    <div id="practiceEndBar" class="practiceEndBar" style="display:none">
+      <div class="practiceEndLeft">
+        <span id="practiceEndMsg"></span>
+        <span id="practiceEndAnswer" class="practiceEndAnswer"></span>
+      </div>
+      <div class="practiceEndActions">
+        <button id="viewResultsBtn" class="btn-small">Results</button>
+        <button id="newGameBtn2" class="btn-small btn-accent">New Game</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="keypad">
+      <div class="keyrow">
+        <button class="key">1</button>
+        <button class="key">2</button>
+        <button class="key">3</button>
+        <button class="key">4</button>
+        <button class="key">5</button>
+        <button class="key">6</button>
+        <button class="key">7</button>
+        <button class="key">8</button>
+        <button class="key">9</button>
+      </div>
+      <div class="keyrow">
+        <button class="key enter">ENTER</button>
+        <button class="key back">⌫</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="newGameBtn" class="btn" style="display:none">New Game</button>
+    </div>
+
+  </main>
+
+  <!-- ── HOW TO PLAY MODAL ── -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal">
+      <button class="modal-close" id="helpClose"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <h2>How to Play</h2>
+      <div class="how-section">
+        <p>Guess the secret <b>4-digit number</b> in 8 tries.</p>
+        <p>Each guess must be 4 <b>unique digits</b> from 1–9 (no zeros, no repeats).</p>
+        <p>After each guess you'll see two clues:</p>
+        <p>
+          <b>Digits</b> — how many of your digits appear anywhere in the answer.<br>
+          <b>Positions</b> — how many digits are in the exact right spot.
+        </p>
+      </div>
+      <div class="how-section">
+        <p><b>Example</b> — secret number is <b>3 8 1 5</b></p>
+        <div class="example-row">
+          <div class="ex-tile submitted">7</div>
+          <div class="ex-tile submitted">3</div>
+          <div class="ex-tile submitted">9</div>
+          <div class="ex-tile submitted">5</div>
+        </div>
+        <div class="how-label">Digits: <b>2</b> &nbsp;·&nbsp; Positions: <b>1</b></div>
+        <p style="margin-top:8px;font-size:12px;color:var(--dim)">
+          3 and 5 are in the answer (2 digits). Only 5 is in the right position (position 4).
+        </p>
+      </div>
+      <div class="how-section">
+        <p>🗓 <b>Daily</b> — one 4-digit puzzle per day, same for everyone.</p>
+        <p>🔁 <b>Practice Normal</b> — unlimited 4-digit puzzles anytime.</p>
+        <p>💀 <b>Practice Hard</b> — 5-digit numbers for a real challenge!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULT MODAL ── -->
+  <div class="modal-backdrop" id="resultModal">
+    <div class="modal">
+      <button class="modal-close" id="resultClose"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="result-header">
+        <div class="result-emoji" id="resultEmoji"></div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-sub" id="resultSub"></div>
+      </div>
+
+      <div class="stat-grid" id="statGrid"></div>
+
+      <div class="dist-title">Guess Distribution</div>
+      <div id="distBars"></div>
+
+      <div class="result-countdown" id="resultCountdown" style="display:none"></div>
+
+      <button class="share-btn" id="shareBtn">Share Result</button>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS MODAL ── -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal">
+      <button class="modal-close" id="settingsClose"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <h2>Settings</h2>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label" id="themeModeLabel">Dark Mode</div>
+          <div class="setting-desc">Switch between light and dark theme</div>
+        </div>
+        <button class="toggle-switch" id="themeToggle" role="switch" aria-checked="false">
+          <span class="toggle-knob"></span>
+        </button>
+      </div>
+
+      <div class="setting-divider"></div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Separate Stats</div>
+          <div class="setting-desc">Daily and Practice stats tracked independently</div>
+        </div>
+        <span class="setting-badge">On</span>
+      </div>
+
+      <div class="setting-divider"></div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Version</div>
+          <div class="setting-desc">Digitace</div>
+        </div>
+        <span class="setting-badge">1.0</span>
+      </div>
+
+      <div class="setting-divider"></div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">About</div>
+          <div class="setting-desc">Crack the secret number using logic and deduction. A new puzzle every day at midnight!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATS MODAL ── -->
+  <div class="modal-backdrop" id="statsModal">
+    <div class="modal">
+      <button class="modal-close" id="statsClose"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <h2 id="statsTitle">Statistics</h2>
+      <div class="stat-grid" id="statsGrid"></div>
+      <div class="dist-title">Guess Distribution</div>
+      <div id="statsDistBars"></div>
+    </div>
+  </div>
+
+  </div><!-- end pageWrap -->
+
+  <script>
+    let ROWS = 8, COLS = 4;
+    let target = "", row = 0, col = 0, locked = false, gameMode = "daily", practiceMode = "normal";
+
+    /* ── DOM refs ── */
+    const board          = document.getElementById("board");
+    const toast          = document.getElementById("toast");
+    const newGameBtn     = document.getElementById("newGameBtn");
+    const streakEl       = document.getElementById("streakEl");
+    const dailyBtn       = document.getElementById("dailyBtn");
+    const practiceBtn    = document.getElementById("practiceBtn");
+    const dailyNotice    = document.getElementById("dailyNotice");
+    const countdownEl    = document.getElementById("countdown");
+    const completedBanner= document.getElementById("completedBanner");
+    const helpBtn        = document.getElementById("helpBtn");
+    const statsBtn       = document.getElementById("statsBtn");
+    const settingsBtn    = document.getElementById("settingsBtn");
+
+    /* ── THEME ── */
+    const savedTheme = localStorage.getItem("dd_theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("dd_theme", theme);
+      const toggle = document.getElementById("themeToggle");
+      if (toggle) toggle.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
+      const label = document.getElementById("themeModeLabel");
+      if (label) label.textContent = theme === "dark" ? "Dark Mode" : "Light Mode";
+    }
+
+    applyTheme(savedTheme);
+
+    /* ── SETTINGS MODAL ── */
+    settingsBtn.onclick = () => {
+      document.getElementById("settingsModal").classList.add("open");
+    };
+    document.getElementById("settingsClose").onclick = () => {
+      document.getElementById("settingsModal").classList.remove("open");
+    };
+    document.getElementById("settingsModal").addEventListener("click", e => {
+      if (e.target.id === "settingsModal") document.getElementById("settingsModal").classList.remove("open");
+    });
+    document.getElementById("themeToggle").onclick = () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      applyTheme(cur === "dark" ? "light" : "dark");
+    };
+
+    /* ── DATE HELPERS ── */
+    function todayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    }
+
+    function puzzleNumber() {
+      // Day 1 = 2025-01-01
+      const origin = new Date(2026, 2, 10); // Launch date: March 10, 2026
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      return Math.floor((now - origin) / 86400000) + 1;
+    }
+
+    function secondsUntilMidnight() {
+      const now = new Date();
+      const midnight = new Date(now); 
+      midnight.setHours(24,0,0,0);
+      return Math.floor((midnight - now) / 1000);
+    }
+
+    function formatCountdown(secs) {
+      const h = String(Math.floor(secs/3600)).padStart(2,"0");
+      const m = String(Math.floor((secs%3600)/60)).padStart(2,"0");
+      const s = String(secs%60).padStart(2,"0");
+      return `${h}:${m}:${s}`;
+    }
+
+    /* ── COUNTDOWN TIMER ── */
+    let countdownInterval = null;
+    function startCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      function tick() {
+        const s = secondsUntilMidnight();
+        const txt = `Next puzzle in <b>${formatCountdown(s)}</b>`;
+        countdownEl.innerHTML = txt;
+        document.getElementById("resultCountdown").innerHTML = `Next puzzle in <b>${formatCountdown(s)}</b>`;
+        const bannerSub = document.getElementById("bannerSub");
+        if (bannerSub) bannerSub.innerHTML = `Next puzzle in <b>${formatCountdown(s)}</b> · Tap to see results`;
+      }
+      tick();
+      countdownInterval = setInterval(tick, 1000);
+    }
+
+    function stopCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownEl.innerHTML = "";
+      document.getElementById("resultCountdown").innerHTML = "";
+    }
+
+    /* ── DAILY TARGET — same for everyone on the same day ── */
+    function getDailyTarget() {
+      const d = new Date();
+      const seed = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+      const sr = n => { const x = Math.sin(n+999)*99991; return x-Math.floor(x); };
+      const digits = ["1","2","3","4","5","6","7","8","9"];
+      let result = "";
+      for (let i=0; i<4; i++) {  // daily is always 4 digits
+        const r = Math.floor(sr(seed+i*37)*digits.length);
+        result += digits[r];
+        digits.splice(r,1);
+      }
+      return result;
+    }
+
+    function makeTarget() {
+      const digits = ["1","2","3","4","5","6","7","8","9"];
+      for (let i=digits.length-1;i>0;i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [digits[i],digits[j]] = [digits[j],digits[i]];
+      }
+      return digits.slice(0,COLS).join("");
+    }
+
+    /* ── STORAGE KEYS ── */
+    function currentSubMode() {
+      if (gameMode==="daily") return "daily";
+      return practiceMode==="hard" ? "practice_hard" : "practice_normal";
+    }
+    function stateKey()  { return `dd_state_${currentSubMode()}`; }
+    function streakKey() { return `dd_streak_${currentSubMode()}`; }
+    function statsKey()  { return `dd_stats_${currentSubMode()}`; }
+
+    /* ── STREAK ── */
+    function loadStreak() { try { return JSON.parse(localStorage.getItem(streakKey())||"0"); } catch { return 0; } }
+    function saveStreak(v){ localStorage.setItem(streakKey(), JSON.stringify(v)); }
+
+    /* ── STATS ── */
+    function loadStats() {
+      try {
+        return JSON.parse(localStorage.getItem(statsKey())) || {
+          played:0, wins:0, currentStreak:0, maxStreak:0, dist:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0}
+        };
+      } catch {
+        return { played:0, wins:0, currentStreak:0, maxStreak:0, dist:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0} };
+      }
+    }
+
+    function saveStats(st) { localStorage.setItem(statsKey(), JSON.stringify(st)); }
+
+    function recordResult(won, attemptRow) {
+      const st = loadStats();
+      st.played++;
+      if (won) {
+        st.wins++;
+        st.currentStreak++;
+        st.maxStreak = Math.max(st.maxStreak, st.currentStreak);
+        st.dist[attemptRow+1] = (st.dist[attemptRow+1]||0) + 1;
+      } else {
+        st.currentStreak = 0;
+      }
+      saveStats(st);
+    }
+
+    /* ── STATE PERSISTENCE ── */
+    function saveState() {
+      const guesses = [];
+      // if locked, include the final row too (winning or losing last row)
+      const saveUpTo = locked ? row + 1 : row;
+      for (let r=0;r<saveUpTo;r++) {
+        let g="";
+        for (let c=0;c<COLS;c++) g+=document.getElementById(`tile-${r}-${c}`).textContent||"";
+        guesses.push(g);
+      }
+      let partial="";
+      if (!locked) {
+        for (let c=0;c<col;c++) partial+=document.getElementById(`tile-${row}-${c}`).textContent||"";
+      }
+      const state = { mode:gameMode, dateKey:todayKey(), target, row, col, locked, guesses, partial };
+      localStorage.setItem(stateKey(), JSON.stringify(state));
+    }
+
+    function loadSavedState() { try { return JSON.parse(localStorage.getItem(stateKey())||"null"); } catch { return null; } }
+
+    /* ── TOAST ── */
+    function showToast(t) {
+      if (!t) { toast.classList.remove("show"); return; }
+      toast.textContent = t;
+      toast.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1600);
+    }
+
+    /* ── BOARD ── */
+    function buildBoard() {
+      board.innerHTML = "";
+      for (let r=0;r<ROWS;r++) {
+        const wrap = document.createElement("div");
+        wrap.className = "rowWrap";
+        const rowEl = document.createElement("div");
+        rowEl.className = "row";
+        rowEl.dataset.r = r;
+        for (let c=0;c<COLS;c++) {
+          const tile = document.createElement("div");
+          tile.className = "tile";
+          tile.id = `tile-${r}-${c}`;
+          rowEl.appendChild(tile);
+        }
+        const scoreEl = document.createElement("div");
+        scoreEl.className = "score hiddenScore";
+        scoreEl.id = `score-${r}`;
+        wrap.appendChild(rowEl);
+        wrap.appendChild(scoreEl);
+        board.appendChild(wrap);
+      }
+    }
+
+    function setTile(r,c,ch) {
+      const t = document.getElementById(`tile-${r}-${c}`);
+      t.textContent = ch;
+      t.classList.toggle("filled", !!ch);
+    }
+
+    function getCurrentGuess() {
+      let s="";
+      for (let c=0;c<COLS;c++) s+=document.getElementById(`tile-${row}-${c}`).textContent||"";
+      return s;
+    }
+
+    function hasUniqueDigits(s) { return new Set(s.split("")).size===s.length; }
+
+    function validateGuess(s) {
+      if (s.length!==COLS)      return "Not enough digits";
+      if (!/^\d+$/.test(s))    return "Digits only";
+      if (s.includes("0"))     return "0 is not used";
+      if (!hasUniqueDigits(s)) return "No repeated digits";
+      // check duplicate guess
+      for (let r=0; r<row; r++) {
+        let prev="";
+        for (let c=0;c<COLS;c++) prev+=document.getElementById(`tile-${r}-${c}`).textContent||"";
+        if (prev===s) return "Already tried that!";
+      }
+      return null;
+    }
+
+    function scoreCounts(guess,tgt) {
+      let correctPositions=0;
+      for (let i=0;i<COLS;i++) if (guess[i]===tgt[i]) correctPositions++;
+      const tSet = new Set(tgt.split(""));
+      let correctDigits=0;
+      for (const ch of new Set(guess.split(""))) if (tSet.has(ch)) correctDigits++;
+      return {correctDigits, correctPositions};
+    }
+
+    function markRowSubmitted(r) {
+      const rowEl = document.querySelector(`.row[data-r="${r}"]`);
+      if (rowEl) { rowEl.classList.add("submitted"); rowEl.classList.remove("active"); }
+    }
+
+    function shakeRow(r) {
+      const rowEl = document.querySelector(`.row[data-r="${r}"]`);
+      if (!rowEl) return;
+      rowEl.classList.remove("shake");
+      void rowEl.offsetWidth; // reflow
+      rowEl.classList.add("shake");
+      setTimeout(()=>rowEl.classList.remove("shake"), 400);
+    }
+
+    function renderScore(r, score) {
+      const el = document.getElementById(`score-${r}`);
+      el.classList.remove("hiddenScore");
+      el.innerHTML = `<span>Digits: <b>${score.correctDigits}</b></span><span>Positions: <b>${score.correctPositions}</b></span>`;
+    }
+
+    function updateActiveRow() {
+      for (let r=0;r<ROWS;r++) {
+        const rowEl = document.querySelector(`.row[data-r="${r}"]`);
+        if (!rowEl) continue;
+        rowEl.classList.toggle("active", r===row && !locked);
+        rowEl.classList.toggle("future", r>row && !locked);
+      }
+    }
+
+    function updateDailyNotice() {
+      if (gameMode==="daily") {
+        const d = new Date();
+        const label = d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+        dailyNotice.textContent = `#${puzzleNumber()} · ${label}`;
+      } else if (practiceMode==="hard") {
+        dailyNotice.textContent = "Hard mode — 5 digit number, unlimited practice";
+      } else {
+        dailyNotice.textContent = "Normal mode — 4 digit number, unlimited practice";
+      }
+    }
+
+    function updateStreakDisplay() {
+      const s = loadStreak();
+      streakEl.innerHTML = `Streak: <b>${s}</b>`;
+    }
+
+    /* ── INPUT ── */
+    function flashKey(val) {
+      document.querySelectorAll(".key").forEach(btn => {
+        if (btn.textContent.trim() === val) {
+          btn.classList.add("flash");
+          setTimeout(() => btn.classList.remove("flash"), 120);
+        }
+      });
+    }
+
+    function typeDigit(d) {
+      if (locked||row>=ROWS||col>=COLS||d==="0") return;
+      setTile(row,col,d); col++;
+      flashKey(d);
+      saveState();
+    }
+
+    function backspace() {
+      if (locked||col<=0) return;
+      col--; setTile(row,col,"");
+      flashKey("⌫");
+      saveState();
+    }
+
+    function submit() {
+      if (locked) return;
+      const guess = getCurrentGuess();
+      const err = validateGuess(guess);
+      if (err) { showToast(err); shakeRow(row); return; }
+
+      const score = scoreCounts(guess, target);
+      markRowSubmitted(row);
+      renderScore(row, score);
+
+      // pulse the row on submit
+      const submittedRowEl = document.querySelector(`.row[data-r="${row}"]`);
+      if (submittedRowEl) {
+        submittedRowEl.classList.add("submitted-flash");
+        setTimeout(()=>submittedRowEl.classList.remove("submitted-flash"), 300);
+      }
+
+      if (guess===target) {
+        recordResult(true, row);
+        const s = loadStreak()+1;
+        saveStreak(s);
+        updateStreakDisplay();
+        locked = true;
+        saveState();
+        updateActiveRow();
+        // mark winning row green
+        const winRowEl = document.querySelector(`.row[data-r="${row}"]`);
+        if (winRowEl) winRowEl.classList.add("won");
+        // bounce each tile with stagger + confetti
+        for (let c=0;c<COLS;c++) {
+          setTimeout(()=>{
+            const t = document.getElementById(`tile-${row}-${c}`);
+            if (t) { t.classList.add("bounce"); }
+          }, c * 80);
+        }
+        setTimeout(()=>launchConfetti(), 500);
+        if (gameMode==="daily") {
+          setTimeout(()=>openResultModal(true, row), 1800);
+        } else {
+          // practice: just reveal board, show action buttons
+          setTimeout(()=>showPracticeEndState(true, row), 1800);
+        }
+        return;
+      }
+
+      row++; col=0;
+      updateActiveRow();
+      saveState();
+
+      if (row>=ROWS) {
+        recordResult(false, -1);
+        saveStreak(0);
+        updateStreakDisplay();
+        locked = true;
+        saveState();
+        if (gameMode==="daily") {
+          setTimeout(()=>openResultModal(false, -1), 1000);
+        } else {
+          setTimeout(()=>showPracticeEndState(false, -1), 1000);
+        }
+      }
+    }
+
+    /* ── RESULT MODAL ── */
+    function buildDistBars(containerId, highlightRow) {
+      const st = loadStats();
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      const totalWins = Object.values(st.dist).reduce((a,b)=>a+b,0);
+      const maxVal = Math.max(1, ...Object.values(st.dist));
+      for (let i=1;i<=ROWS;i++) {
+        const cnt = st.dist[i]||0;
+        const pct = totalWins > 0 ? Math.round((cnt/maxVal)*100) : 0;
+        const el = document.createElement("div");
+        el.className = "dist-row";
+        el.innerHTML = `
+          <div class="dist-label">${i}</div>
+          <div class="dist-bar-wrap">
+            <div class="dist-bar ${i===highlightRow ? 'highlight' : ''}" style="width:${Math.max(pct,8)}%">${cnt}</div>
+          </div>`;
+        container.appendChild(el);
+      }
+      if (totalWins === 0 && st.played > 0) {
+        const msg = document.createElement("div");
+        msg.style.cssText = "font-size:12px;color:var(--dim);text-align:center;margin-top:8px;";
+        msg.textContent = "Win a game to see your distribution!";
+        container.appendChild(msg);
+      }
+    }
+
+    function buildStatGrid(containerId) {
+      const st = loadStats();
+      const winPct = st.played>0 ? Math.round((st.wins/st.played)*100) : 0;
+      const container = document.getElementById(containerId);
+      container.innerHTML = `
+        <div class="stat-box"><div class="stat-val">${st.played}</div><div class="stat-lbl">Played</div></div>
+        <div class="stat-box"><div class="stat-val">${winPct}</div><div class="stat-lbl">Win %</div></div>
+        <div class="stat-box"><div class="stat-val">${st.currentStreak}</div><div class="stat-lbl">Streak</div></div>
+        <div class="stat-box"><div class="stat-val">${st.maxStreak}</div><div class="stat-lbl">Best</div></div>`;
+    }
+
+    function openResultModal(won, attemptRow) {
+      const emoji = won ? "🎉" : "😔";
+      const winLabels = ["","Genius! 🧠","Genius! 🧠","Impressive! 🔥","Great! 👏","Nice! 😊","Phew! 😅","Close call! 😬","Just made it! 🫠"];
+      const title = won ? (winLabels[attemptRow+1] || `Solved in ${attemptRow+1}!`) : "Better luck next time";
+      const puzzleLabel = gameMode==="daily" ? `Puzzle #${puzzleNumber()}` : practiceMode==="hard" ? "Practice Hard" : "Practice Normal";
+      const sub   = won
+        ? (attemptRow===0 ? `${puzzleLabel} · First try — incredible!` : puzzleLabel)
+        : `${puzzleLabel} · The answer was ${target}`;
+
+      document.getElementById("resultEmoji").textContent  = emoji;
+      document.getElementById("resultTitle").textContent  = title;
+      document.getElementById("resultSub").textContent    = sub;
+
+      buildStatGrid("statGrid");
+      buildDistBars("distBars", won ? attemptRow+1 : -1);
+
+      const rcEl = document.getElementById("resultCountdown");
+      if (gameMode==="daily") {
+        rcEl.style.display = "";
+        startCountdown();
+      } else {
+        rcEl.style.display = "none";
+      }
+
+      if (gameMode==="daily") {
+        completedBanner.classList.add("show");
+      }
+
+      document.getElementById("resultModal").classList.add("open");
+    }
+
+    /* ── SHARE ── */
+    document.getElementById("shareBtn").onclick = () => {
+      // use saved guesses for reliability
+      const saved = loadSavedState();
+      const guessHistory = saved ? saved.guesses : [];
+      const rows = [];
+      let won = false;
+      let wonRow = -1;
+      for (let i=0; i<guessHistory.length; i++) {
+        const g = guessHistory[i];
+        let emojiRow="";
+        for (let c=0;c<g.length;c++) {
+          if (g[c]===target[c]) emojiRow+="🟩";
+          else if (target.includes(g[c])) emojiRow+="🟨";
+          else emojiRow+="⬜";
+        }
+        rows.push(emojiRow);
+        if (g===target) { won=true; wonRow=i; }
+      }
+      const modeLabel = gameMode==="daily" ? `#${puzzleNumber()}` : practiceMode==="hard" ? "Practice Hard" : "Practice Normal";
+      const lines = [
+        `🎯 Digitace ${modeLabel}`,
+        won ? `${wonRow+1}/8` : `X/8`,
+        "",
+        ...rows
+      ];
+      const text = lines.join("\n");
+      navigator.clipboard.writeText(text).then(()=>showToast("Copied!")).catch(()=>{
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand("copy"); document.body.removeChild(ta);
+        showToast("Copied!");
+      });
+    };
+
+    /* ── STATS MODAL ── */
+    statsBtn.onclick = () => {
+      const statLabel = gameMode==="daily" ? "Daily" : practiceMode==="hard" ? "Practice Hard" : "Practice Normal";
+      document.getElementById("statsTitle").textContent = `${statLabel} Statistics`;
+      buildStatGrid("statsGrid");
+      buildDistBars("statsDistBars", -1);
+      document.getElementById("statsModal").classList.add("open");
+    };
+
+    /* ── HELP MODAL ── */
+    helpBtn.onclick = () => document.getElementById("helpModal").classList.add("open");
+
+    /* close modals */
+    document.getElementById("helpClose").onclick   = () => document.getElementById("helpModal").classList.remove("open");
+    document.getElementById("resultClose").onclick = () => document.getElementById("resultModal").classList.remove("open");
+    document.getElementById("statsClose").onclick  = () => document.getElementById("statsModal").classList.remove("open");
+
+    // close on backdrop click
+    ["helpModal","resultModal","statsModal"].forEach(id => {
+      document.getElementById(id).addEventListener("click", e => {
+        if (e.target.id===id) document.getElementById(id).classList.remove("open");
+      });
+    });
+
+    completedBanner.onclick = () => {
+      const saved = loadSavedState();
+      if (saved) {
+        const won = saved.guesses.some(g=>g===saved.target);
+        const solveIdx = saved.guesses.findIndex(g=>g===saved.target);
+        openResultModal(won, solveIdx);
+      }
+    };
+
+    /* ── RESTORE STATE ── */
+    function restoreState(state) {
+      target = state.target;
+      row    = state.row;
+      col    = state.col;
+      locked = state.locked;
+      buildBoard();
+      for (let r=0;r<state.guesses.length;r++) {
+        const g = state.guesses[r];
+        for (let c=0;c<COLS;c++) setTile(r,c,g[c]||"");
+        markRowSubmitted(r);
+        renderScore(r, scoreCounts(g, target));
+        if (g===target) {
+          const winRowEl = document.querySelector(`.row[data-r="${r}"]`);
+          if (winRowEl) winRowEl.classList.add("won");
+        }
+      }
+      for (let c=0;c<state.partial.length;c++) setTile(row,c,state.partial[c]);
+      updateActiveRow();
+      updateStreakDisplay();
+      if (locked && gameMode==="daily") {
+        completedBanner.classList.add("show");
+        startCountdown();
+      }
+      if (locked && gameMode==="practice") {
+        const won = state.guesses.some(g=>g===state.target);
+        const solveIdx = state.guesses.findIndex(g=>g===state.target);
+        showPracticeEndState(won, solveIdx);
+      }
+    }
+
+    /* ── RESET / INIT ── */
+    function reset(forceNew) {
+      stopCountdown();
+      completedBanner.classList.remove("show");
+      document.getElementById("resultModal").classList.remove("open");
+      document.getElementById("practiceEndBar").style.display = "none";
+
+      const saved = loadSavedState();
+      const dk = todayKey();
+      const todayTarget = getDailyTarget();
+
+      if (!forceNew) {
+        if (gameMode==="daily" && saved && saved.dateKey===dk && saved.target===todayTarget) {
+          // valid today's daily state — restore it
+          restoreState(saved);
+          updateDailyNotice();
+          return;
+        }
+        if (gameMode==="practice" && saved) {
+          // restore regardless of locked state — let user review their board
+          restoreState(saved);
+          updateDailyNotice();
+          return;
+        }
+      }
+
+      // clear any stale daily state if date has changed
+      if (gameMode==="daily" && saved && saved.dateKey!==dk) {
+        localStorage.removeItem("dd_state_daily");
+      }
+
+      locked=false; row=0; col=0;
+      buildBoard();
+      target = gameMode==="daily" ? todayTarget : makeTarget();
+      updateActiveRow();
+      updateDailyNotice();
+      updateStreakDisplay();
+      saveState();
+    }
+
+    /* ── MODE SWITCHING ── */
+    const practiceSubRow = document.getElementById("practiceSubRow");
+    const normalBtn = document.getElementById("normalBtn");
+    const hardBtn = document.getElementById("hardBtn");
+
+    function applyDimensions() {
+      if (gameMode==="daily" || practiceMode==="normal") {
+        ROWS = 8; COLS = 4;
+      } else {
+        ROWS = 8; COLS = 5;
+      }
+    }
+
+    dailyBtn.onclick = () => {
+      gameMode="daily";
+      dailyBtn.classList.add("active");
+      practiceBtn.classList.remove("active");
+      newGameBtn.style.display="none";
+      practiceSubRow.style.display="none";
+      applyDimensions();
+      reset(false);
+    };
+
+    practiceBtn.onclick = () => {
+      gameMode="practice";
+      practiceBtn.classList.add("active");
+      dailyBtn.classList.remove("active");
+      newGameBtn.style.display="none";
+      practiceSubRow.style.display="";
+      stopCountdown();
+      applyDimensions();
+      reset(false);
+    };
+
+    normalBtn.onclick = () => {
+      if (practiceMode==="normal") return;
+      practiceMode="normal";
+      normalBtn.classList.add("active");
+      hardBtn.classList.remove("active");
+      applyDimensions();
+      reset(false);
+    };
+
+    hardBtn.onclick = () => {
+      if (practiceMode==="hard") return;
+      practiceMode="hard";
+      hardBtn.classList.add("active");
+      normalBtn.classList.remove("active");
+      applyDimensions();
+      reset(false);
+    };
+
+    newGameBtn.onclick = () => { if (gameMode==="practice") reset(true); };
+
+    // practice end bar buttons
+    document.getElementById("newGameBtn2").onclick = () => {
+      document.getElementById("practiceEndBar").style.display = "none";
+      reset(true);
+    };
+    document.getElementById("viewResultsBtn").onclick = () => {
+      const saved = loadSavedState();
+      if (saved) {
+        const won = saved.guesses.some(g=>g===saved.target);
+        const solveIdx = saved.guesses.findIndex(g=>g===saved.target);
+        openResultModal(won, solveIdx);
+      }
+    };
+
+    /* ── KEYBOARD ── */
+    document.addEventListener("keydown", e => {
+      if (e.key==="Enter")           submit();
+      else if (e.key==="Backspace")  backspace();
+      else if (/^[1-9]$/.test(e.key)) typeDigit(e.key);
+    });
+
+    // mobile: keep active row visible when virtual keyboard appears
+    window.addEventListener("resize", () => {
+      const activeRow = document.querySelector(".row.active");
+      if (activeRow) activeRow.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    /* ── ON-SCREEN KEYS ── */
+    document.querySelectorAll(".key").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const v = btn.textContent.trim();
+        if (v==="ENTER") submit();
+        else if (v==="⌫") backspace();
+        else typeDigit(v);
+      });
+    });
+
+    /* ── PRACTICE END STATE ── */
+    function showPracticeEndState(won, attemptRow) {
+      const bar = document.getElementById("practiceEndBar");
+      const msg = document.getElementById("practiceEndMsg");
+      const answerEl = document.getElementById("practiceEndAnswer");
+      if (won) {
+        const wl = ["","Genius! 🧠","Genius! 🧠","Impressive! 🔥","Great! 👏","Nice! 😊","Phew! 😅","Close call! 😬","Just made it! 🫠"];
+        msg.textContent = wl[attemptRow+1] || `Solved in ${attemptRow+1}!`;
+        msg.style.color = "var(--green)";
+        answerEl.textContent = "";
+      } else {
+        msg.textContent = `The answer was`;
+        msg.style.color = "var(--dim)";
+        answerEl.textContent = target;
+      }
+      bar.style.display = "flex";
+    }
+
+    /* ── CONFETTI ── */
+    function launchConfetti() {
+      const canvas = document.createElement("canvas");
+      canvas.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999";
+      document.body.appendChild(canvas);
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const pieces = Array.from({length: 80}, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: Math.random() * 6 + 3,
+        d: Math.random() * 80 + 20,
+        color: ["#4a7fa5","#3a9e6e","#c8860a","#c0392b","#7c6bff","#ff6b9d"][Math.floor(Math.random()*6)],
+        tilt: Math.random() * 10 - 10,
+        tiltAngle: 0,
+        tiltSpeed: Math.random() * 0.1 + 0.05
+      }));
+      let frame = 0;
+      const MAX = 120;
+      function draw() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        pieces.forEach(p => {
+          p.tiltAngle += p.tiltSpeed;
+          p.y += (Math.cos(frame/20 + p.d) + 2);
+          p.x += Math.sin(frame/20) * 0.5;
+          p.tilt = Math.sin(p.tiltAngle) * 12;
+          ctx.beginPath();
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, 1 - frame/MAX);
+          ctx.ellipse(p.x, p.y, p.r, p.r*0.5, p.tilt, 0, Math.PI*2);
+          ctx.fill();
+        });
+        frame++;
+        if (frame < MAX) requestAnimationFrame(draw);
+        else document.body.removeChild(canvas);
+      }
+      draw();
+    }
+
+    /* ── FIRST VISIT — show how to play ── */
+    if (!localStorage.getItem("dd_visited")) {
+      localStorage.setItem("dd_visited","1");
+      setTimeout(()=>document.getElementById("helpModal").classList.add("open"), 300);
+    }
+
+    /* ── INIT ── */
+    applyDimensions();
+    reset(false);
+  </script>
+</body>
+</html>
